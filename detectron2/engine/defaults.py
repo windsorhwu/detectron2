@@ -16,6 +16,7 @@ import sys
 import weakref
 from collections import OrderedDict
 from typing import Optional
+from detectron2.utils.analysis import find_unused_parameters
 import torch
 from fvcore.nn.precise_bn import get_bn_modules
 from omegaconf import OmegaConf
@@ -377,7 +378,7 @@ class DefaultTrainer(TrainerBase):
         optimizer = self.build_optimizer(cfg, model)
         data_loader = self.build_train_loader(cfg)
 
-        model = create_ddp_model(model, broadcast_buffers=False)
+        model = create_ddp_model(model, broadcast_buffers=False, find_unused_parameters=True)
         self._trainer = (AMPTrainer if cfg.SOLVER.AMP.ENABLED else SimpleTrainer)(
             model, data_loader, optimizer
         )

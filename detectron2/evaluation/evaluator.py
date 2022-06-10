@@ -147,6 +147,7 @@ def inference_on_dataset(
 
         start_data_time = time.perf_counter()
         for idx, inputs in enumerate(data_loader):
+            print("idx: ", idx)
             total_data_time += time.perf_counter() - start_data_time
             if idx == num_warmup:
                 start_time = time.perf_counter()
@@ -201,6 +202,7 @@ def inference_on_dataset(
         )
     )
 
+    print("start evaluating .....")
     results = evaluator.evaluate()
     # An evaluator may return None when not in main process.
     # Replace it by an empty dict instead to make it easier for downstream code to handle

@@ -75,6 +75,16 @@ _C.INPUT.CROP.TYPE = "relative_range"
 # pixels if CROP.TYPE is "absolute"
 _C.INPUT.CROP.SIZE = [0.9, 0.9]
 
+# Custom input fashion
+_C.INPUT.CUSTOM = None
+# Large-scale jitter
+_C.INPUT.LSJ = CN()
+_C.INPUT.LSJ.MAX_SIZE_TRAIN = (128, 2048)
+_C.INPUT.LSJ.MAX_SIZE_TRAIN_SAMPLING = "range"
+_C.INPUT.LSJ.MAX_SIZE_TEST = 1024
+_C.INPUT.LSJ.CROP_TYPE = "absolute"
+_C.INPUT.LSJ.CROP_SIZE = (1024, 1024)
+_C.INPUT.LSJ.RANDOM_FLIP = "horizontal"
 
 # Whether the model needs RGB, YUV, HSV etc.
 # Should be one of the modes defined here, as we use PIL to read the image:
@@ -106,6 +116,8 @@ _C.DATASETS.TEST = ()
 _C.DATASETS.PROPOSAL_FILES_TEST = ()
 # Number of top scoring precomputed proposals to keep for test
 _C.DATASETS.PRECOMPUTED_PROPOSAL_TOPK_TEST = 1000
+# Custom dataset
+_C.DATASETS.CUSTOM = None
 
 # -----------------------------------------------------------------------------
 # DataLoader
@@ -136,6 +148,50 @@ _C.MODEL.BACKBONE.NAME = "build_resnet_backbone"
 # stages are each group of residual blocks.
 _C.MODEL.BACKBONE.FREEZE_AT = 2
 
+# ---------------------------------------------------------------------------- #
+# Up-G Backbone options
+# ---------------------------------------------------------------------------- #
+_C.MODEL.BACKBONE.UPG = CN()
+_C.MODEL.BACKBONE.UPG.FROZEN_STAGES = 5
+_C.MODEL.BACKBONE.UPG.TASK_NAMES = ('gv_patch', 'gv_global')
+_C.MODEL.BACKBONE.UPG.MAIN_TASK_NAME = 'gv_patch'
+_C.MODEL.BACKBONE.UPG.TRANS_TYPE = 'crossconvhrnetlayer'
+_C.MODEL.BACKBONE.UPG.TRANS_LAYERS = ['layer1', 'layer2', 'layer3']
+_C.MODEL.BACKBONE.UPG.CHANNELS = [64, 128, 192]  # deprecated in Up-G ResNet
+
+# ---------------------------------------------------------------------------- #
+# MetaNet Backbone options
+# ---------------------------------------------------------------------------- #
+_C.MODEL.BACKBONE.METANET = CN()
+_C.MODEL.BACKBONE.METANET.FROZEN_STAGES = 36
+_C.MODEL.BACKBONE.METANET.NORM = 'BN'
+
+# ---------------------------------------------------------------------------- #
+# BriVL Backbone options
+# ---------------------------------------------------------------------------- #
+_C.MODEL.BACKBONE.BRIVL = CN()
+_C.MODEL.BACKBONE.BRIVL.FROZEN_STAGES = 9
+_C.MODEL.BACKBONE.BRIVL.NORM = 'BN'
+
+# ---------------------------------------------------------------------------- #
+# SEER Backbone options
+# ---------------------------------------------------------------------------- #
+_C.MODEL.BACKBONE.SEER = CN()
+_C.MODEL.BACKBONE.SEER.FROZEN_STAGES = 5
+_C.MODEL.BACKBONE.SEER.NORM = 'BN'
+_C.MODEL.BACKBONE.SEER.USE_CHECKPOINTING = False
+
+# ---------------------------------------------------------------------------- #
+# ViT Backbone options
+# ---------------------------------------------------------------------------- #
+_C.MODEL.BACKBONE.VIT = CN()
+_C.MODEL.BACKBONE.VIT.EMBED_DIM = 1024
+_C.MODEL.BACKBONE.VIT.DEPTH = 24
+_C.MODEL.BACKBONE.VIT.GRID_NUM = 576
+_C.MODEL.BACKBONE.VIT.INTERVAL = 6
+_C.MODEL.BACKBONE.VIT.WINDOW_SIZE = 24
+_C.MODEL.BACKBONE.VIT.LEARNABLE_POS = False
+_C.MODEL.BACKBONE.VIT.FROZEN_STAGES = 25
 
 # ---------------------------------------------------------------------------- #
 # FPN options
@@ -150,9 +206,10 @@ _C.MODEL.FPN.OUT_CHANNELS = 256
 # Options: "" (no norm), "GN"
 _C.MODEL.FPN.NORM = ""
 
-# Types for fusing the FPN top-down and lateral features. Can be either "sum" or "avg"
+# Types for fusing the FPN top-down and lateral features. Can be either "sum" (default), "avg" or "none" (custom)
 _C.MODEL.FPN.FUSE_TYPE = "sum"
 
+_C.MODEL.FPN.DIVISIBILITY = 32
 
 # ---------------------------------------------------------------------------- #
 # Proposal generator options
@@ -163,7 +220,6 @@ _C.MODEL.PROPOSAL_GENERATOR.NAME = "RPN"
 # Proposal height and width both need to be greater than MIN_SIZE
 # (a the scale used during training or inference)
 _C.MODEL.PROPOSAL_GENERATOR.MIN_SIZE = 0
-
 
 # ---------------------------------------------------------------------------- #
 # Anchor generator options
@@ -244,6 +300,10 @@ _C.MODEL.RPN.NMS_THRESH = 0.7
 # Set this to -1 to use the same number of output channels as input channels.
 _C.MODEL.RPN.CONV_DIMS = [-1]
 
+_C.MODEL.RPN.NORM = None
+_C.MODEL.RPN.ACTIVATION = "relu"
+_C.MODEL.RPN.GATE_NUM = 1
+
 # ---------------------------------------------------------------------------- #
 # ROI HEADS options
 # ---------------------------------------------------------------------------- #
@@ -319,14 +379,7 @@ _C.MODEL.ROI_BOX_HEAD.CLS_AGNOSTIC_BBOX_REG = False
 # If true, RoI heads use bounding boxes predicted by the box head rather than proposal boxes.
 _C.MODEL.ROI_BOX_HEAD.TRAIN_ON_PRED_BOXES = False
 
-# Federated loss can be used to improve the training of LVIS
-_C.MODEL.ROI_BOX_HEAD.USE_FED_LOSS = False
-# Sigmoid cross entrophy is used with federated loss
-_C.MODEL.ROI_BOX_HEAD.USE_SIGMOID_CE = False
-# The power value applied to image_count when calcualting frequency weight
-_C.MODEL.ROI_BOX_HEAD.FED_LOSS_FREQ_WEIGHT_POWER = 0.5
-# Number of classes to keep in total
-_C.MODEL.ROI_BOX_HEAD.FED_LOSS_NUM_CLASSES = 50
+_C.MODEL.ROI_BOX_HEAD.ACTIVATION = "relu"
 
 # ---------------------------------------------------------------------------- #
 # Cascaded Box Head

@@ -11,6 +11,8 @@ from typing import List, Union
 import pycocotools.mask as mask_util
 import torch
 from PIL import Image
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 from detectron2.structures import (
     BitMasks,
@@ -36,6 +38,7 @@ __all__ = [
     "annotations_to_instances",
     "annotations_to_instances_rotated",
     "build_augmentation",
+    "build_augmentation_lsj",
     "build_transform_gen",
     "create_keypoint_hflip_indices",
     "filter_empty_instances",
@@ -390,11 +393,20 @@ def annotations_to_instances(annos, image_size, mask_format="polygon"):
         else np.zeros((0, 4))
     )
     target = Instances(image_size)
-    target.gt_boxes = Boxes(boxes)
 
     classes = [int(obj["category_id"]) for obj in annos]
-    classes = torch.tensor(classes, dtype=torch.int64)
+    indexes = [i for i, c in enumerate(classes) if c == classes[0]]
+    assert len(indexes) >= 1, f'{indexes}'
+    task_classes = [classes[i] for i in indexes]
+    assert len(task_classes) >= 1, f"{task_classes}"
+    task_classes = torch.tensor(task_classes, dtype=torch.int64)
+    classes = torch.tensor([0 for _ in indexes], dtype=torch.int64)
+
+    boxes = boxes[indexes]
+    assert len(boxes) >= 1, f'{boxes}'
+    target.gt_boxes = Boxes(boxes)
     target.gt_classes = classes
+    target.task_classes = task_classes
 
     if len(annos) and "segmentation" in annos[0]:
         segms = [obj["segmentation"] for obj in annos]
@@ -498,11 +510,16 @@ def filter_empty_instances(
 
     if not r:
         return instances
+
     m = r[0]
     for x in r[1:]:
         m = m & x
     if return_mask:
         return instances[m], m
+    # logger = logging.getLogger(__name__)
+    if 0:
+        if torch.any(torch.logical_not(m)):
+            raise ValueError(f"some boxes invalid {m} {instances.gt_boxes}")
     return instances[m]
 
 
@@ -529,29 +546,6 @@ def create_keypoint_hflip_indices(dataset_names: Union[str, List[str]]) -> List[
     flipped_names = [i if i not in flip_map else flip_map[i] for i in names]
     flip_indices = [names.index(i) for i in flipped_names]
     return flip_indices
-
-
-def get_fed_loss_cls_weights(dataset_names: Union[str, List[str]], freq_weight_power=1.0):
-    """
-    Get frequency weight for each class sorted by class id.
-    We now calcualte freqency weight using image_count to the power freq_weight_power.
-
-    Args:
-        dataset_names: list of dataset names
-        freq_weight_power: power value
-    """
-    if isinstance(dataset_names, str):
-        dataset_names = [dataset_names]
-
-    check_metadata_consistency("class_image_count", dataset_names)
-
-    meta = MetadataCatalog.get(dataset_names[0])
-    class_freq_meta = meta.class_image_count
-    class_freq = torch.tensor(
-        [c["image_count"] for c in sorted(class_freq_meta, key=lambda x: x["id"])]
-    )
-    class_freq_weight = class_freq.float() ** freq_weight_power
-    return class_freq_weight
 
 
 def gen_crop_transform_with_instance(crop_size, image_size, instance):
@@ -644,3 +638,30 @@ build_transform_gen = build_augmentation
 """
 Alias for backward-compatibility.
 """
+
+
+def build_augmentation_lsj(cfg, is_train):
+    """
+    Create a list of default :class:`Augmentation` from config.
+    Now it includes resizing and flipping.
+
+    Returns:
+        list[Augmentation]
+    """
+    if is_train:
+        max_size = cfg.MAX_SIZE_TRAIN
+        sample_style = cfg.MAX_SIZE_TRAIN_SAMPLING  # "range" or "choice"
+    else:
+        max_size = cfg.MAX_SIZE_TEST
+        sample_style = "choice"
+    augmentation = [T.ResizeLongestEdge(max_size, sample_style=sample_style)]
+    if is_train and cfg.RANDOM_FLIP != "none":
+        augmentation.append(
+            T.RandomFlip(
+                horizontal=cfg.RANDOM_FLIP == "horizontal",
+                vertical=cfg.RANDOM_FLIP == "vertical",
+            )
+        )
+    if is_train:
+        augmentation.append(T.RandomCrop(cfg.CROP_TYPE, cfg.CROP_SIZE))
+    return augmentation

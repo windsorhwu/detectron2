@@ -1,0 +1,38 @@
+_BASE_: "../Base-RCNN-FPN.yaml"
+MODEL:
+  META_ARCHITECTURE: "MultTaskGeneralizedRCNN"
+  RESNETS:
+    DEPTH: 50
+    STRIDE_IN_1X1: False
+    NORM: 'SyncBN'
+  BACKBONE:
+    FREEZE_AT: 2
+  WEIGHTS: /data1/linfeng/Datasets/supervised.pkl
+  MASK_ON: False
+  RPN:
+    GATE_NUM: 26
+    HEAD_NAME: "GatedMultiRPNHead"
+  ROI_HEADS:
+    NAME: "GatedStandardROIHeads"
+    NUM_CLASSES: 1
+  FPN:
+    NORM: 'SyncBN'
+  PIXEL_MEAN: [123.675, 116.280, 103.530]
+  PIXEL_STD: [58.395, 57.120, 57.375]
+INPUT:
+  FORMAT: "RGB"
+SOLVER:
+  IMS_PER_BATCH: 16
+  BASE_LR: 0.02
+  STEPS: (900000, 1200000)
+  MAX_ITER: 1350000
+  WARMUP_ITERS: 1000
+  WEIGHT_DECAY_BIAS: 0.0001
+  CHECKPOINT_PERIOD: 5000
+DATASETS:
+  CUSTOM: "Surv30"
+  TRAIN: ("Surv30_cocoformat_train",)
+  TEST: ("Surv30_cocoformat_val",)
+TEST:
+  EVAL_PERIOD: 50000
+SEED: 1 

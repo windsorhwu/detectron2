@@ -15,6 +15,8 @@ Therefore, we recommend you to use detectron2 as an library and take
 this file as an example of how to use the library.
 You may want to write your own script with your datasets and other customizations.
 """
+import sys
+sys.path.insert(0, '/data2/huangkun/detectron2/')
 
 import logging
 import os
@@ -121,8 +123,42 @@ def setup(args):
     return cfg
 
 
+def register_dataset_custom(name):
+    if name == 'Ads':
+        from datasets_custom.Ads import Register
+    elif name == 'Materials':
+        from datasets_custom.Materials import Register
+    elif name == 'Loess':
+        from datasets_custom.Loess import Register
+    elif name == 'ExposeRubbish':
+        from datasets_custom.ExposeRubbish import Register
+    elif name == 'HangStreet':
+        from datasets_custom.HangStreet import Register
+    elif name == 'Rubbish':
+        from datasets_custom.Rubbish import Register
+    elif name == 'Banner':
+        from datasets_custom.Banner import Register
+    elif name == 'UnlicenseBusiness':
+        from datasets_custom.UnlicenseBusiness import Register
+    elif name == 'Out':
+        from datasets_custom.Out import Register
+    elif name == 'OperatingUmbrella':
+        from datasets_custom.OperatingUmbrella import Register
+    elif name == 'Object365':
+        from datasets_custom.Object365 import Register
+    elif name == 'Surv30':
+        from datasets_custom.Surv30 import Register
+    else:
+        raise ValueError
+    Register().register_dataset()
+
+
 def main(args):
     cfg = setup(args)
+
+    # register our custom dataset
+    if cfg.DATASETS.CUSTOM is not None:
+        register_dataset_custom(cfg.DATASETS.CUSTOM)
 
     if args.eval_only:
         model = Trainer.build_model(cfg)
