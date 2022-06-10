@@ -395,12 +395,16 @@ def annotations_to_instances(annos, image_size, mask_format="polygon"):
     target = Instances(image_size)
 
     classes = [int(obj["category_id"]) for obj in annos]
+    #[3,3,4,3]
     indexes = [i for i, c in enumerate(classes) if c == classes[0]]
+    #[0,1,3]
     assert len(indexes) >= 1, f'{indexes}'
     task_classes = [classes[i] for i in indexes]
+    #[3,3,3]
     assert len(task_classes) >= 1, f"{task_classes}"
     task_classes = torch.tensor(task_classes, dtype=torch.int64)
     classes = torch.tensor([0 for _ in indexes], dtype=torch.int64)
+    #[0,0,0]
 
     boxes = boxes[indexes]
     assert len(boxes) >= 1, f'{boxes}'
